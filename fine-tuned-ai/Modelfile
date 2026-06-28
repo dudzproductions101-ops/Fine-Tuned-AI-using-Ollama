@@ -1,0 +1,88 @@
+# ============================================================
+# Ollama Modelfile for Fine-Tuned CodeLlama
+# ============================================================
+# This file is auto-updated by model/export.py
+# The FROM path below will be replaced after export.
+#
+# Usage (after export):
+#   ollama create mycodellama -f ollama/Modelfile
+#   ollama run mycodellama
+#   ollama run mycodellama "Write a Python function to sort a list"
+# ============================================================
+
+# Path to your GGUF model file.
+# This is automatically updated by model/export.py
+FROM ./model_weights/model-q4_K_M.gguf
+
+# ============================================================
+# Model Parameters
+# ============================================================
+
+# Temperature: Lower = more deterministic, higher = more creative
+# 0.1 = very focused on most likely code output
+# 0.7 = more creative/varied
+PARAMETER temperature 0.2
+
+# Top-p sampling: considers tokens with cumulative probability >= top_p
+PARAMETER top_p 0.95
+
+# Top-k: only sample from top K tokens at each step
+PARAMETER top_k 40
+
+# Repeat penalty: discourages repeating the same tokens
+PARAMETER repeat_penalty 1.1
+
+# Context window size (tokens). CodeLlama supports up to 16384
+PARAMETER num_ctx 4096
+
+# Number of tokens to generate before stopping
+PARAMETER num_predict 1024
+
+# Number of layers to offload to GPU (adjust based on your VRAM)
+# Set to 0 to run entirely on CPU (slow)
+# Set to -1 to offload ALL layers to GPU
+PARAMETER num_gpu -1
+
+# Number of threads for CPU inference
+PARAMETER num_thread 8
+
+# Seed for reproducibility (-1 = random)
+PARAMETER seed -1
+
+# ============================================================
+# System Prompt
+# ============================================================
+# This is prepended to every conversation.
+# It sets the model's behavior and persona.
+
+SYSTEM """You are an expert software engineer and coding assistant. You help developers write clean, efficient, and well-documented code.
+
+When answering:
+- Provide complete, working code examples
+- Include comments to explain complex logic
+- Use modern best practices for the language in question
+- Handle edge cases and errors appropriately
+- Explain your approach when helpful
+- Format code in proper code blocks
+
+Languages you excel at: Python, JavaScript, TypeScript, Go, Rust, Java, C++, SQL, Bash, and more."""
+
+# ============================================================
+# Message Template
+# ============================================================
+# Defines how user/assistant messages are formatted.
+# This must match the format used during training.
+# CodeLlama Instruct uses [INST] ... [/INST] format.
+
+TEMPLATE """[INST] {{ if .System }}{{ .System }}
+
+{{ end }}{{ .Prompt }} [/INST]
+{{ .Response }}"""
+
+# ============================================================
+# License
+# ============================================================
+LICENSE """This model is fine-tuned from CodeLlama (Meta AI).
+Base model license: CodeLlama Community License Agreement
+Fine-tuning data: Scraped programming content (educational use)
+"""

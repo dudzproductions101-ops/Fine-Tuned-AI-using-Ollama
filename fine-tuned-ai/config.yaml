@@ -1,0 +1,142 @@
+# ============================================================
+# Global Configuration for CodeLlama Fine-Tuning Pipeline
+# ============================================================
+
+project:
+  name: "CodeLlama-FineTuned"
+  version: "1.0.0"
+  base_dir: "."
+  data_dir: "data"
+  output_dir: "outputs"
+  log_dir: "logs"
+
+# ------------------------------------------------------------
+# Model Configuration
+# ------------------------------------------------------------
+model:
+  base_model: "codellama/CodeLlama-7b-Instruct-hf"
+  # Alternatives:
+  # "codellama/CodeLlama-13b-Instruct-hf"  (needs more VRAM)
+  # "deepseek-ai/deepseek-coder-6.7b-instruct"
+  # "Salesforce/codegen2-7B"
+  tokenizer: "codellama/CodeLlama-7b-Instruct-hf"
+  max_length: 2048
+  trust_remote_code: true
+
+# ------------------------------------------------------------
+# Quantization (QLoRA)
+# ------------------------------------------------------------
+quantization:
+  use_4bit: true
+  bnb_4bit_compute_dtype: "float16"
+  bnb_4bit_quant_type: "nf4"
+  use_nested_quant: true
+
+# ------------------------------------------------------------
+# LoRA Configuration
+# ------------------------------------------------------------
+lora:
+  r: 16                        # LoRA rank
+  lora_alpha: 32               # Scaling
+  target_modules:
+    - "q_proj"
+    - "v_proj"
+    - "k_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# ------------------------------------------------------------
+# Training Hyperparameters
+# ------------------------------------------------------------
+training:
+  output_dir: "outputs/fine_tuned"
+  num_train_epochs: 3
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 4
+  gradient_checkpointing: true
+  optim: "paged_adamw_32bit"
+  learning_rate: 2.0e-4
+  weight_decay: 0.001
+  fp16: false
+  bf16: false
+  max_grad_norm: 0.3
+  max_steps: -1              # -1 means use num_train_epochs
+  warmup_ratio: 0.03
+  group_by_length: true
+  lr_scheduler_type: "cosine"
+  logging_steps: 25
+  evaluation_strategy: "steps"
+  eval_steps: 100
+  save_strategy: "steps"
+  save_steps: 100
+  save_total_limit: 3
+  load_best_model_at_end: true
+  report_to: "none"          # Set to "wandb" or "tensorboard" if desired
+  seed: 42
+
+# ------------------------------------------------------------
+# Dataset Configuration
+# ------------------------------------------------------------
+dataset:
+  train_split: 0.90
+  val_split: 0.05
+  test_split: 0.05
+  shuffle: true
+  seed: 42
+  max_samples: null          # null = use all samples
+  min_input_length: 20       # Minimum chars in input
+  max_input_length: 4000     # Maximum chars in input
+  min_output_length: 10      # Minimum chars in output
+
+  # Prompt template for instruction fine-tuning
+  prompt_template: |
+    [INST] {instruction} [/INST]
+    {output}
+
+# ------------------------------------------------------------
+# Scraper Configuration
+# ------------------------------------------------------------
+scraper:
+  max_pages_per_source: 100
+  max_total_pages: 1000
+  request_delay: 1.5          # Seconds between requests
+  timeout: 30
+  max_retries: 3
+  user_agent: "Mozilla/5.0 (compatible; CodeDataBot/1.0; educational)"
+  respect_robots_txt: true
+  output_dir: "data/raw"
+  concurrent_requests: 3
+
+# ------------------------------------------------------------
+# Preprocessing Configuration
+# ------------------------------------------------------------
+preprocessing:
+  min_text_length: 100        # Min chars after cleaning
+  max_text_length: 50000      # Max chars (chunk if larger)
+  language_filter: ["en"]     # Only keep English content
+  dedup_threshold: 0.85       # Jaccard similarity threshold
+  remove_html: true
+  remove_code_comments: false # Keep code comments (they're informative)
+  normalize_whitespace: true
+
+# ------------------------------------------------------------
+# Export & Ollama Configuration
+# ------------------------------------------------------------
+export:
+  merged_model_dir: "outputs/merged"
+  ollama_weights_dir: "ollama/model_weights"
+  modelfile_path: "ollama/Modelfile"
+  quantization_format: "q4_K_M"  # Ollama quantization
+
+ollama:
+  model_name: "mycodellama"
+  context_window: 4096
+  temperature: 0.2
+  top_p: 0.95
+  repeat_penalty: 1.1
